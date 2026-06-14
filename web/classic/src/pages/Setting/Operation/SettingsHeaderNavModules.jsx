@@ -163,11 +163,6 @@ export default function SettingsHeaderNavModules(props) {
   // 模块配置数据
   const moduleConfigs = [
     {
-      key: 'home',
-      title: t('首页'),
-      description: t('用户主页，展示系统信息'),
-    },
-    {
       key: 'console',
       title: t('控制台'),
       description: t('用户控制面板，管理账户'),
