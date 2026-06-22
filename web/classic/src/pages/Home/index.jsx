@@ -17,66 +17,80 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useContext, useEffect, useState } from 'react';
-import { Button, Input, ScrollList, ScrollItem } from '@douyinfe/semi-ui';
-import { API, showError, copy, showSuccess } from '../../helpers';
+import React, { useEffect, useState } from 'react';
+import { API, showError } from '../../helpers';
 import { useIsMobile } from '../../hooks/common/useIsMobile';
-import { API_ENDPOINTS } from '../../constants/common.constant';
-import { StatusContext } from '../../context/Status';
 import { useActualTheme } from '../../context/Theme';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
-import {
-  IconGithubLogo,
-  IconPlay,
-  IconFile,
-  IconCopy,
-} from '@douyinfe/semi-icons';
-import { Link } from 'react-router-dom';
 import NoticeModal from '../../components/layout/NoticeModal';
 
 const relayHighlights = [
-  { value: '40+', label: '上游模型渠道' },
-  { value: '99.9%', label: '业务可用性设计' },
-  { value: '1 URL', label: '统一接入地址' },
+  { value: '服务明示', label: '功能与权益展示清晰' },
+  { value: '支付透明', label: '金额订单支付状态可查' },
+  { value: '合规运营', label: '声明审计与风控闭环' },
+];
+
+const serviceBadges = [
+  '微信支付场景友好',
+  '服务内容清晰展示',
 ];
 
 const relayScenarios = [
   {
-    title: '统一 Token 中转',
-    description: 'OpenAI 兼容协议承接业务流量，统一转发到不同模型与供应商。',
-  },
-  {
-    title: '额度与计费闭环',
-    description: '按用户、密钥、模型维度记录消耗，让充值、扣费和审计更清晰。',
-  },
-  {
-    title: '密钥隔离托管',
+    title: '服务内容明示',
     description:
-      '业务侧只持有平台密钥，上游 Key 集中管理，降低泄露和滥用风险。',
+      '首页展示 AI 模型接入、额度管理、用量审计等实际服务内容，避免模糊宣传。',
   },
   {
-    title: '多渠道容灾路由',
-    description: '把限速、故障、成本和模型能力纳入统一调度，稳定承接生产请求。',
+    title: '订单支付透明',
+    description:
+      '支付前展示服务权益、订单金额与支付状态，支付后按订单完成额度交付和记录留存。',
+  },
+  {
+    title: '用户权益保障',
+    description:
+      '提供公告、用户协议、隐私政策、订单记录和售后处理入口，便于用户查询与反馈。',
+  },
+  {
+    title: '合规运营管控',
+    description:
+      '支付、订阅、兑换码等能力与合规声明联动，提醒运营方履行备案、安全和内容治理责任。',
   },
 ];
 
-const relaySteps = ['业务请求', '统一鉴权', '额度校验', '智能路由', '模型响应'];
+const complianceCards = [
+  {
+    title: '支付前信息确认',
+    description:
+      '清楚展示服务内容、权益周期、订单金额和支付方式，用户确认后再发起支付。',
+  },
+  {
+    title: '交易记录留存',
+    description:
+      '订单、支付状态、额度交付和用量明细可查询，便于对账、售后和风险核查。',
+  },
+  {
+    title: '隐私与安全保护',
+    description:
+      '通过用户协议、隐私政策、密钥托管和访问控制，明确数据使用边界。',
+  },
+  {
+    title: '合规提醒内置',
+    description:
+      '涉及生成式 AI 服务、收费、订阅和推广时，提示运营方依法履行相关合规义务。',
+  },
+];
+
+const relaySteps = ['选择服务', '确认订单', '安全支付', '额度交付', '用量审计'];
 
 const Home = () => {
   const { t, i18n } = useTranslation();
-  const [statusState] = useContext(StatusContext);
   const actualTheme = useActualTheme();
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
   const [homePageContent, setHomePageContent] = useState('');
   const [noticeVisible, setNoticeVisible] = useState(false);
   const isMobile = useIsMobile();
-  const isDemoSiteMode = statusState?.status?.demo_site_enabled || false;
-  const docsLink = statusState?.status?.docs_link || '';
-  const serverAddress =
-    statusState?.status?.server_address || `${window.location.origin}`;
-  const endpointItems = API_ENDPOINTS.map((e) => ({ value: e }));
-  const [endpointIndex, setEndpointIndex] = useState(0);
   const isChinese = i18n.language.startsWith('zh');
 
   const displayHomePageContent = async () => {
@@ -108,13 +122,6 @@ const Home = () => {
     setHomePageContentLoaded(true);
   };
 
-  const handleCopyBaseURL = async () => {
-    const ok = await copy(serverAddress);
-    if (ok) {
-      showSuccess(t('已复制到剪切板'));
-    }
-  };
-
   useEffect(() => {
     const checkNoticeAndShow = async () => {
       const lastCloseDate = localStorage.getItem('notice_close_date');
@@ -139,13 +146,6 @@ const Home = () => {
     displayHomePageContent().then();
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setEndpointIndex((prev) => (prev + 1) % endpointItems.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [endpointItems.length]);
-
   return (
     <div className='classic-page-fill classic-home-page w-full overflow-x-hidden'>
       <NoticeModal
@@ -162,92 +162,17 @@ const Home = () => {
                 <div className='classic-token-copy'>
                   <div className='classic-token-eyebrow'>
                     <span className='classic-token-pulse' />
-                    {t('Token Relay Infrastructure')}
+                    {t('')}
                   </div>
-                  <h1
-                    className={`classic-token-title ${isChinese ? 'classic-token-title-zh' : ''}`}
-                  >
-                    {t('稳定承接 AI Token 流量')}
-                    <span>{t('统一中转、计费与路由')}</span>
-                  </h1>
                   <p className='classic-token-subtitle'>
                     {t(
-                      '面向 AI 应用、SaaS 平台与企业内部系统，提供统一 Base URL、密钥托管、额度扣费、模型路由和用量审计，让业务请求稳定转发到 OpenAI、Claude、Gemini、DeepSeek 等上游模型。',
+                      '为用户提供明确的 AI 模型调用、额度管理和用量记录服务。平台在支付前展示服务内容、订单金额和权益说明，支付后完成额度交付并保留订单与调用记录，便于用户查询、售后处理和合规核查。',
                     )}
                   </p>
-
-                  <div className='classic-token-basebox'>
-                    <div className='classic-token-basebox-label'>
-                      {t('业务侧只需替换 Base URL')}
-                    </div>
-                    <Input
-                      readonly
-                      value={serverAddress}
-                      className='classic-token-base-input'
-                      size={isMobile ? 'default' : 'large'}
-                      suffix={
-                        <div className='classic-token-endpoint'>
-                          <ScrollList
-                            bodyHeight={32}
-                            style={{ border: 'unset', boxShadow: 'unset' }}
-                          >
-                            <ScrollItem
-                              mode='wheel'
-                              cycled={true}
-                              list={endpointItems}
-                              selectedIndex={endpointIndex}
-                              onSelect={({ index }) => setEndpointIndex(index)}
-                            />
-                          </ScrollList>
-                          <Button
-                            type='primary'
-                            onClick={handleCopyBaseURL}
-                            icon={<IconCopy />}
-                            className='classic-token-copy-button'
-                          />
-                        </div>
-                      }
-                    />
-                  </div>
-
-                  <div className='classic-token-actions'>
-                    <Link to='/console'>
-                      <Button
-                        theme='solid'
-                        type='primary'
-                        size={isMobile ? 'default' : 'large'}
-                        className='classic-token-primary-action'
-                        icon={<IconPlay />}
-                      >
-                        {t('立即接入')}
-                      </Button>
-                    </Link>
-                    {isDemoSiteMode && statusState?.status?.version ? (
-                      <Button
-                        size={isMobile ? 'default' : 'large'}
-                        className='classic-token-secondary-action'
-                        icon={<IconGithubLogo />}
-                        onClick={() =>
-                          window.open(
-                            'https://github.com/QuantumNous/new-api',
-                            '_blank',
-                          )
-                        }
-                      >
-                        {statusState.status.version}
-                      </Button>
-                    ) : (
-                      docsLink && (
-                        <Button
-                          size={isMobile ? 'default' : 'large'}
-                          className='classic-token-secondary-action'
-                          icon={<IconFile />}
-                          onClick={() => window.open(docsLink, '_blank')}
-                        >
-                          {t('查看接入文档')}
-                        </Button>
-                      )
-                    )}
+                  <div className='classic-token-badges'>
+                    {serviceBadges.map((badge) => (
+                      <span key={badge}>{t(badge)}</span>
+                    ))}
                   </div>
                 </div>
 
@@ -257,10 +182,10 @@ const Home = () => {
                 >
                   <div className='classic-token-console-head'>
                     <div>
-                      <span>{t('Relay Control Plane')}</span>
-                      <strong>{t('Token 中转运行态')}</strong>
+                      <span>{t('支付与服务流程')}</span>
+                      <strong>{t('订单交付运行态')}</strong>
                     </div>
-                    <em>{t('Live')}</em>
+                    <em>{t('运行中')}</em>
                   </div>
                   <div className='classic-token-route'>
                     {relaySteps.map((step, index) => (
@@ -281,14 +206,6 @@ const Home = () => {
                         <span>{t(item.label)}</span>
                       </div>
                     ))}
-                  </div>
-                  <div className='classic-token-terminal'>
-                    <div>
-                      <span>POST</span>
-                      <code>/v1/chat/completions</code>
-                    </div>
-                    <p>{`model: ${endpointItems[endpointIndex]?.value || 'gpt-4o'}`}</p>
-                    <p>{t('quota checked -> routed -> settled')}</p>
                   </div>
                 </div>
               </div>
